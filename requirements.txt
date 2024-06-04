@@ -1,0 +1,10 @@
+tweet-preprocessor
+nltk
+pyspark
+kafka-python
+langchain_google_genai
+pandas
+kafka
+chat-downloader
+nltk
+confluent_kafka

@@ -38,3 +38,17 @@ ENV SPARK_MASTER="spark://spark-master:7077"
 ENV SPARK_MASTER_HOST spark-master
 ENV SPARK_MASTER_PORT 7077
 ENV PYSPARK_PYTHON python3
+
+COPY spark-defaults.conf $SPARK_HOME/conf
+
+RUN mkdir -p /tmp/spark_checkpoints
+RUN chmod 777 /tmp/spark_checkpoints
+
+RUN chmod u+x /opt/spark/sbin/* && \
+    chmod u+x /opt/spark/bin/*
+
+ENV PYTHONPATH=$SPARK_HOME/python/:$PYTHONPATH
+
+COPY entrypoint.sh .
+
+ENTRYPOINT ["./entrypoint.sh"]
