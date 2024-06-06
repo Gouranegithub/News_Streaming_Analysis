@@ -65,10 +65,9 @@ from confluent_kafka import Producer
 
 
 def palm_it(text):
-    api_key = "AIzaSyALE6Vt_Vloi_Nld-EfMeoxY56neEc73Is"
+    api_key = "Google_Palm_Token" #u need to add the personal token 
     llm = GoogleGenerativeAI(model="models/text-bison-001", google_api_key=api_key, temperature=0.5)
-
-    print("hannnaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaAAAAAAAAAAAAAAAAAAAAA")
+   
     #text = "The Apache Hadoop software library is a framework that allows for the distributed processing of large data sets across clusters of computers using simple programming models. It is designed to scale up from single servers to thousands of machines, each offering local computation and storage. Rather than rely on hardware to deliver high-availability, the library itself is designed to detect and handle failures at the application layer, so delivering a highly-available gourane on top of a cluster of computers, each of which may be prone to failures."
     questions = ["what the text talks about in one word"]
     question = "\n".join([ f"{i+1}- {q}" for i,q in enumerate(questions)])
