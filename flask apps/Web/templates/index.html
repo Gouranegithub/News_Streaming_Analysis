@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Live Stream and Chat Analysis</title>
+    <!-- <link rel="stylesheet" href="styles.css"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>YouTube Live Stream and Chat Analysis</h1>
+        </header>
+        <main>
+            <div class="input-container">
+                <label for="youtube-link">Paste YouTube Live Stream Link:</label>
+                <input type="text" id="youtube-link" placeholder="Enter YouTube live link here...">
+                <button onclick="loadLiveStream()">Load Stream</button>
+            </div>
+            <div class="content">
+                <div class="video-container">
+                    <div class="topic">
+                        <h2>Topic : <span>{{ topic }}</span></h2>
+                    </div>
+                    <iframe id="youtube-live" width="560" height="315" src="" frameborder="0" allow="autoplay" allowfullscreen></iframe>
+                </div>
+                <div class="chat-analysis">
+                    <h2>Chat Sentiment Analysis</h2>
+                    <canvas id="sentiment-chart"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Working script -->
+
+    <script>
+        function loadLiveStream() {
+            const linkInput = document.getElementById('youtube-link').value;
+            const youtubeIframe = document.getElementById('youtube-live');
+            if (linkInput) {
+                const videoId = extractVideoId(linkInput);
+                youtubeIframe.src = `https://www.youtube.com/embed/${videoId}`;
+                
+                // Send the link to the Flask app to start the scraper
+                $.ajax({
+                    type: "POST",
+                    url: "/start_scraper",
+                    contentType: "application/json",
+                    data: JSON.stringify({ link: linkInput }),
+                    success: function(response) {
+                        console.log(response.message);
+                    },
+                    error: function(error) {
+                        console.error("Error starting scraper:", error.responseJSON.error);
+                    }
+                });
+                // Initialize the sentiment chart
+                initSentimentChart();
+            }
+        }
+        function extractVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const matches = url.match(regex);
+            return matches ? matches[1] : null;
+        }
+
+        // Initialize Chart.js for sentiment analysis
+        let sentimentChart;
+        function initSentimentChart() {
+            const ctx = document.getElementById('sentiment-chart').getContext('2d');
+            sentimentChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Positive', 'Negative', 'Neutral'],
+                    datasets: [{
+                        label: 'Sentiment Analysis',
+                        data: [0, 0, 0],
+                        backgroundColor: ['#4caf50', '#f44336', '#9e9e9e'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return tooltipItem.label + ': ' + tooltipItem.raw + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            // Connect to the Socket.IO server
+            const socket = io();
+
+            // Listen for sentiment data updates
+            socket.on('update_sentiment', function(data) {
+                updateSentimentChart(data);
+            });
+        }
+
+        // Update the sentiment chart with new data
+        function updateSentimentChart(data) {
+            sentimentChart.data.datasets[0].data = [data.positive, data.negative, data.neutral];
+            sentimentChart.update();
+        }
+
+        function simulateSentimentData() {
+            setInterval(() => {
+                const sentimentData = {
+                    positive: Math.random() * 100,
+                    negative: Math.random() * 100,
+                    neutral: Math.random() * 100
+                };
+                const total = sentimentData.positive + sentimentData.negative + sentimentData.neutral;
+                sentimentData.positive = (sentimentData.positive / total) * 100;
+                sentimentData.negative = (sentimentData.negative / total) * 100;
+                sentimentData.neutral = (sentimentData.neutral / total) * 100;
+                updateSentimentChart(sentimentData);
+            }, 10000);
+        }
+
+        // Start the simulation (to be removed in production)
+        simulateSentimentData();
+    </script>
+
+    <!-- New script -->
+    <!-- <script>
+        // Function to extract video ID from YouTube URL
+        function extractVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const matches = url.match(regex);
+            return matches ? matches[1] : null;
+        }
+
+        // Function to load live stream and start scraper
+        function loadLiveStream() {
+            const linkInput = document.getElementById('youtube-link').value;
+            const youtubeIframe = document.getElementById('youtube-live');
+            if (linkInput) {
+                const videoId = extractVideoId(linkInput);
+                youtubeIframe.src = `https://www.youtube.com/embed/${videoId}`;
+                
+                // Send the link to the Flask app to start the scraper
+                $.ajax({
+                    type: "POST",
+                    url: "/start_scraper",
+                    contentType: "application/json",
+                    data: JSON.stringify({ link: linkInput }),
+                    success: function(response) {
+                        console.log(response.message);
+                    },
+                    error: function(error) {
+                        console.error("Error starting scraper:", error.responseJSON.error);
+                    }
+                });
+
+                // Initialize the sentiment chart
+                initSentimentChart();
+            }
+        }
+
+        // Initialize Chart.js for sentiment analysis
+        let sentimentChart;
+        function initSentimentChart() {
+            const ctx = document.getElementById('sentiment-chart').getContext('2d');
+            sentimentChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Positive', 'Negative', 'Neutral'],
+                    datasets: [{
+                        label: 'Sentiment Analysis',
+                        data: [0, 0, 0],
+                        backgroundColor: ['#4caf50', '#f44336', '#9e9e9e'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return tooltipItem.label + ': ' + tooltipItem.raw.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Connect to the Socket.IO server
+            const socket = io();
+
+            socket.on('connect', function() {
+                console.log('Connected to the server');
+            });
+
+            // Listen for sentiment data updates
+            socket.on('update_sentiment', function(data) {
+                console.log("Received sentiment data:", data); 
+                updateSentimentChart(data);
+            });
+        }
+
+        // Update the sentiment chart with new data
+        function updateSentimentChart(data) {
+            sentimentChart.data.datasets[0].data = [data.positive, data.negative, data.neutral];
+            sentimentChart.update();
+        }
+    </script> -->
+
+
+
+</body>
+</html>
