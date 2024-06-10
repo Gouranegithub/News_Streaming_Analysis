@@ -1,0 +1,70 @@
+version: "3.8"
+
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeperr
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafkaa
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafkaa:9092,OUTSIDE://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: zookeeperr:2181
+      KAFKA_CREATE_TOPICS: "Chats"
+
+  spark-master:
+    container_name: da-spark-master
+    build: .
+    image: spark:3.4.3
+    entrypoint: ["./entrypoint.sh", "master"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - ./book_data:/opt/spark/data
+      - ./spark_apps:/opt/spark/apps
+      - spark-logs:/opt/spark/spark-events
+    env_file:
+      - .env.spark
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+      - "4040:4040"
+
+  spark-history-server:
+    container_name: da-spark-history
+    image: spark:3.4.3
+    entrypoint: ["./entrypoint.sh", "history"]
+    depends_on:
+      - spark-master
+    env_file:
+      - .env.spark
+    volumes:
+      - spark-logs:/opt/spark/spark-events
+    ports:
+      - "18080:18080"
+
+  spark-worker:
+    image: spark:3.4.3
+    entrypoint: ["./entrypoint.sh", "worker"]
+    depends_on:
+      - spark-master
+    env_file:
+      - .env.spark
+    volumes:
+      - ./book_data:/opt/spark/data
+      - ./spark_apps:/opt/spark/apps
+      - spark-logs:/opt/spark/spark-events
+
+volumes:
+  spark-logs:
